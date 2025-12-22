@@ -1,4 +1,7 @@
-TODO_plugin_name:
+mass_anonymizer:
   plugin_name_enabled:
     default: false
     client: true
+  manon_min_time_since_last_seen:
+    default: 365
+    client: 365

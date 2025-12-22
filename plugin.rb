@@ -16,6 +16,18 @@ end
 
 require_relative "lib/my_plugin_module/engine"
 
+
 after_initialize do
+
+  enabled_site_setting :manon_min_time_since_last_seen
   # Code which should run after Rails has finished booting
+  add_admin_route 'mass_anonymize.title', 'mass-anonymize'
+
+ Discourse::Application.routes.append do
+    mount ::MassAnonymizePlugin::Engine, at: "/mass-anonymize/"
+
+    get "/mass-anonymize/admin" => "mass_anonymize_plugin/admin#index", :constraints => StaffConstraint.new
+    get "/mass-anonymize/doofus" => "mass_anonymize_plugin/admin#doofus", :constraints => StaffConstraint.new
+  end
+
 end

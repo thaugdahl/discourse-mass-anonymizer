@@ -3,7 +3,11 @@ en:
     admin:
       site_settings:
         categories:
-          TODO_plugin_name: "Mass Anonymizer"
+          mass_anonymizer: "Mass Anonymize"
+        manon_min_time_since_last_seen: "Min Time"
   js:
-    discourse_plugin_name:
-      placeholder: placeholder
+    mass_anonymize:
+      title: Mass Anonymize
+      get_users_btn: Get Eligible Users
+    purple_tentacle:
+      show: Show Purple Tentacle
