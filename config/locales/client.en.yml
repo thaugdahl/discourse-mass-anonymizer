@@ -9,5 +9,4 @@ en:
     mass_anonymize:
       title: Mass Anonymize
       get_users_btn: Get Eligible Users
-    purple_tentacle:
-      show: Show Purple Tentacle
+      anonymize_all_btn: Anonymize All
