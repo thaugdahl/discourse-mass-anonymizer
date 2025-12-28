@@ -27,5 +27,6 @@ after_initialize do
     mount ::MassAnonymizePlugin::Engine, at: "/mass-anonymize/"
 
     get "/mass-anonymize/admin" => "mass_anonymize_plugin/admin#index", :constraints => StaffConstraint.new
+    post "/mass-anonymize/anonymize" => "mass_anonymize_plugin/admin#anonymize", :constraints => StaffConstraint.new
   end
 end

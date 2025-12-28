@@ -1,5 +1,6 @@
 import { LinkTo } from "@ember/routing";
 import DButton from "discourse/components/d-button";
+import { fn } from "@ember/helper";
 
 export default <template>
 
@@ -23,6 +24,9 @@ Loading...
 <ul>
 {{#each @controller.eligibleUsers as |user|}}
 <li>
+{{#if user.anonymized}}
+&#x2713;
+{{/if}}
 <LinkTo @route="adminUser" @model={{user}}>
   {{user.username}}
 </LinkTo>
