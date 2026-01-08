@@ -49,6 +49,10 @@ export default class AdminPluginsMassAnonymizeController extends Controller {
     console.log(this.eligibleUsers);
   }
 
+  not(a) {
+    return !a;
+  }
+
   @action getUsers() {
     if ( this.usersFetched ) {
       return;
