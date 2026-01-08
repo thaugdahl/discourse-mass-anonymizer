@@ -1,6 +1,9 @@
 import { LinkTo } from "@ember/routing";
-import DButton from "discourse/components/d-button";
+import { Input } from "@ember/component";
+import { on } from "@ember/modifier";
 import { fn } from "@ember/helper";
+import DButton from "discourse/components/d-button";
+import { eq, not } from 'discourse/truth-helpers'
 
 export default <template>
 
@@ -24,8 +27,14 @@ Loading...
 <ul>
 {{#each @controller.eligibleUsers as |user|}}
 <li>
-{{#if user.anonymized}}
+{{#if (not (@controller.isProcessing user))}}
+<Input @type="checkbox" @checked={{@controller.isChecked user}} {{on "change" (fn @controller.setSelected user) }} />
+{{else}}
+{{#if (not (@controller.isDone user))}}
+&#8635;
+{{else}}
 &#x2713;
+{{/if}}
 {{/if}}
 <LinkTo @route="adminUser" @model={{user}}>
   {{user.username}}
@@ -37,6 +46,19 @@ Loading...
 {{/each}}
 </ul>
 </div>
+
+<DButton
+  @label="mass_anonymize.select_all_btn"
+  @action={{@controller.selectAll}}
+  @icon="eye"
+  @id="select-all"
+/>
+<DButton
+  @label="mass_anonymize.deselect_all_btn"
+  @action={{@controller.deselectAll}}
+  @icon="eye"
+  @id="deselect-all"
+/>
 
 <DButton
   @label="mass_anonymize.anonymize_all_btn"

@@ -10,3 +10,5 @@ en:
       title: Mass Anonymize
       get_users_btn: Get Eligible Users
       anonymize_all_btn: Anonymize All
+      deselect_all_btn: Deselect All
+      select_all_btn: Select All
