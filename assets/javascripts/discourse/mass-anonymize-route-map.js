@@ -1,5 +1,5 @@
 export default {
-  resource: "admin.adminPlugins",
+  resource: "admin.adminPlugins.show",
   path: "/plugins",
   map() {
     this.route("mass-anonymize");

@@ -1,0 +1,52 @@
+.mass-anonymize {
+  &__bulk-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  &__table {
+    width: 100%;
+  }
+
+  &__status-col {
+    width: 2.5rem;
+  }
+
+  &__status-cell {
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  &__done {
+    color: var(--success);
+
+    .svg-icon {
+      width: 1em;
+      height: 1em;
+    }
+  }
+
+  &__processing {
+    color: var(--tertiary);
+
+    .svg-icon {
+      width: 1em;
+      height: 1em;
+      animation: rotate 1s linear infinite;
+    }
+  }
+
+  &__empty-state {
+    padding: 2rem;
+    text-align: center;
+    color: var(--primary-medium);
+    background: var(--primary-very-low);
+    border-radius: var(--d-border-radius);
+
+    p {
+      margin: 0;
+    }
+  }
+}

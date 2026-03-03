@@ -1,5 +1,5 @@
 module ::MassAnonymizePlugin
-  class AdminController < ::ApplicationController
+  class AdminController < ::Admin::AdminController
 
     requires_plugin PLUGIN_NAME
 

@@ -4,4 +4,4 @@ mass_anonymizer:
     client: true
   manon_min_time_since_last_seen:
     default: 365
-    client: 365
+    type: integer
