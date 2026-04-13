@@ -99,6 +99,16 @@ export default <template>
           <p>{{i18n "mass_anonymize.no_eligible_users"}}</p>
         </div>
       {{/if}}
+
+      {{#if @controller.hasMore}}
+        <div class="mass-anonymize__load-more">
+          <DButton
+            @label="mass_anonymize.load_more_btn"
+            @action={{@controller.loadMore}}
+            @disabled={{@controller.isLoading}}
+          />
+        </div>
+      {{/if}}
     {{/unless}}
   </div>
 </template>

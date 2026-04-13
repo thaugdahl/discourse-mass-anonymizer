@@ -6,7 +6,7 @@
 # authors: Tor Andre Haugdahl <thaugdahl@gmail.com>
 # required_version: 2.7.0
 
-enabled_site_setting :plugin_name_enabled
+enabled_site_setting :mass_anonymizer_enabled
 
 module ::MassAnonymizePlugin
   PLUGIN_NAME = "mass-anonymize"

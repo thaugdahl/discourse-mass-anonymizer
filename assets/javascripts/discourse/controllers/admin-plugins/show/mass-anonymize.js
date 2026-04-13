@@ -1,7 +1,9 @@
 import { tracked } from "@glimmer/tracking";
 import Controller from "@ember/controller";
 import EmberObject, { action } from "@ember/object";
+import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
+import { i18n } from "discourse-i18n";
 
 class MAStates {
   static IDLE = 0;
@@ -21,11 +23,18 @@ class MAStates {
 }
 
 export default class AdminPluginsShowMassAnonymizeController extends Controller {
+  @service dialog;
+
   @tracked eligibleUsers = [];
   @tracked isLoading = false;
-  @tracked anonState = {};
+  @tracked currentPage = 1;
+  @tracked totalCount = 0;
 
   usersFetched = false;
+
+  get hasMore() {
+    return this.eligibleUsers.length < this.totalCount;
+  }
 
   setAnonymized(userId) {
     this.eligibleUsers = this.eligibleUsers.map((usr) => {
@@ -48,24 +57,56 @@ export default class AdminPluginsShowMassAnonymizeController extends Controller 
     }
 
     this.isLoading = true;
+    this.currentPage = 1;
 
-    ajax("/mass-anonymize/admin.json")
-      .then((users) => {
-        this.eligibleUsers = users.map((user) => {
-          const then = new Date(user.last_seen_at);
-          const now = new Date();
-          const msPerDay = 1000 * 60 * 60 * 24;
-
-          user.days_since =
-            Math.floor((now - then) / msPerDay).toString() + " days";
-
-          return EmberObject.create({ ...user, maState: MAStates.IDLE });
-        });
+    ajax(`/mass-anonymize/admin.json?page=${this.currentPage}`)
+      .then((response) => {
+        this.totalCount = response.total_count ?? response.users?.length ?? 0;
+        this.eligibleUsers = this._mapUsers(response.users ?? []);
+        this.usersFetched = true;
       })
       .catch((err) => console.error(err)) // eslint-disable-line no-console
       .finally(() => {
         this.isLoading = false;
       });
+  }
+
+  @action
+  loadMore() {
+    if (this.isLoading || !this.hasMore) {
+      return;
+    }
+
+    this.isLoading = true;
+    this.currentPage += 1;
+
+    ajax(`/mass-anonymize/admin.json?page=${this.currentPage}`)
+      .then((response) => {
+        this.eligibleUsers = [
+          ...this.eligibleUsers,
+          ...this._mapUsers(response.users ?? []),
+        ];
+      })
+      .catch((err) => {
+        this.currentPage -= 1;
+        console.error(err); // eslint-disable-line no-console
+      })
+      .finally(() => {
+        this.isLoading = false;
+      });
+  }
+
+  _mapUsers(users) {
+    return users.map((user) => {
+      const then = new Date(user.last_seen_at);
+      const now = new Date();
+      const msPerDay = 1000 * 60 * 60 * 24;
+
+      user.days_since =
+        Math.floor((now - then) / msPerDay).toString() + " days";
+
+      return EmberObject.create({ ...user, maState: MAStates.IDLE });
+    });
   }
 
   @action
@@ -121,12 +162,24 @@ export default class AdminPluginsShowMassAnonymizeController extends Controller 
 
   @action
   anonymizeAll() {
+    const selected = this.eligibleUsers.filter(
+      (user) => user.maState === MAStates.SELECTED
+    );
+
+    if (selected.length === 0) {
+      return;
+    }
+
+    this.dialog.confirm({
+      message: i18n("mass_anonymize.confirm_anonymize", { count: selected.length }),
+      didConfirm: () => this._doAnonymizeAll(selected),
+    });
+  }
+
+  _doAnonymizeAll(selectedUsers) {
     const SEGMENT_SIZE = 5;
 
-    const allToAnonymize = this.eligibleUsers
-      .filter((user) => user.maState === MAStates.SELECTED)
-      .map((user) => user.id);
-
+    const allToAnonymize = selectedUsers.map((user) => user.id);
     const numToAnonymize = allToAnonymize.length;
 
     const shouldContinue = (segmentIdx) => {
@@ -145,15 +198,19 @@ export default class AdminPluginsShowMassAnonymizeController extends Controller 
         type: "POST",
         contentType: "application/json",
         data: JSON.stringify({ users: segment }),
-      }).then((data) => {
-        data?.anonymizedIds.forEach((id) => {
-          this.updateState(id, MAStates.ANONYMIZED);
-        });
+      })
+        .then((data) => {
+          data?.anonymizedIds.forEach((id) => {
+            this.updateState(id, MAStates.ANONYMIZED);
+          });
 
-        if (shouldContinue(segmentIdx + 1)) {
-          applySequence(segmentIdx + 1);
-        }
-      });
+          if (shouldContinue(segmentIdx + 1)) {
+            applySequence(segmentIdx + 1);
+          }
+        })
+        .catch(() => {
+          segment.forEach((id) => this.updateState(id, MAStates.IDLE));
+        });
     };
 
     applySequence(0);

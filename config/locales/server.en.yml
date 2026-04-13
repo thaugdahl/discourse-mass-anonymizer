@@ -1,3 +1,6 @@
 en:
   site_settings:
         manon_min_time_since_last_seen: "Anonymize if time since last seen (days)"
+  mass_anonymize:
+    errors:
+      batch_too_large: "Batch too large. Maximum %{max} users per request."
