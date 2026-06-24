@@ -15,6 +15,7 @@ en:
       select_all_btn: Select All
       no_eligible_users: No eligible users found. Click "Get Eligible Users" to load inactive users.
       confirm_anonymize: "Permanently anonymize %{count} user(s)? This cannot be undone."
+      some_skipped: "%{count} user(s) were skipped because they were no longer eligible."
       load_more_btn: Load More
       columns:
         user: User

@@ -2,11 +2,11 @@ import { Input } from "@ember/component";
 import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { LinkTo } from "@ember/routing";
-import ConditionalLoadingSpinner from "discourse/components/conditional-loading-spinner";
-import DBreadcrumbsItem from "discourse/components/d-breadcrumbs-item";
-import DButton from "discourse/components/d-button";
-import DPageSubheader from "discourse/components/d-page-subheader";
-import icon from "discourse/helpers/d-icon";
+import DBreadcrumbsItem from "discourse/ui-kit/d-breadcrumbs-item";
+import DButton from "discourse/ui-kit/d-button";
+import DConditionalLoadingSpinner from "discourse/ui-kit/d-conditional-loading-spinner";
+import DPageSubheader from "discourse/ui-kit/d-page-subheader";
+import dIcon from "discourse/ui-kit/helpers/d-icon";
 import { i18n } from "discourse-i18n";
 
 export default <template>
@@ -30,7 +30,7 @@ export default <template>
       </:actions>
     </DPageSubheader>
 
-    <ConditionalLoadingSpinner @condition={{@controller.isLoading}} />
+    <DConditionalLoadingSpinner @condition={{@controller.isLoading}} />
 
     {{#unless @controller.isLoading}}
       {{#if @controller.eligibleUsers.length}}
@@ -68,12 +68,10 @@ export default <template>
             {{#each @controller.eligibleUsers as |user|}}
               <tr class="d-table__row">
                 <td class="d-table__cell mass-anonymize__status-cell">
-                  {{#if (@controller.isProcessing user)}}
-                    {{#if (@controller.isDone user)}}
-                      <span class="mass-anonymize__done">{{icon "check"}}</span>
-                    {{else}}
-                      <span class="mass-anonymize__processing">{{icon "spinner"}}</span>
-                    {{/if}}
+                  {{#if (@controller.isDone user)}}
+                    <span class="mass-anonymize__done">{{dIcon "check"}}</span>
+                  {{else if (@controller.isProcessing user)}}
+                    <span class="mass-anonymize__processing">{{dIcon "spinner"}}</span>
                   {{else}}
                     <Input
                       @type="checkbox"

@@ -3,6 +3,7 @@ import Controller from "@ember/controller";
 import EmberObject, { action } from "@ember/object";
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
+import { popupAjaxError } from "discourse/lib/ajax-error";
 import { i18n } from "discourse-i18n";
 
 class MAStates {
@@ -27,45 +28,31 @@ export default class AdminPluginsShowMassAnonymizeController extends Controller 
 
   @tracked eligibleUsers = [];
   @tracked isLoading = false;
-  @tracked currentPage = 1;
-  @tracked totalCount = 0;
+  @tracked hasMore = false;
 
-  usersFetched = false;
-
-  get hasMore() {
-    return this.eligibleUsers.length < this.totalCount;
-  }
-
-  setAnonymized(userId) {
-    this.eligibleUsers = this.eligibleUsers.map((usr) => {
-      const updated = { ...usr };
-      if (userId === usr.id) {
-        updated.maState = MAStates.ANONYMIZED;
-      }
-      return EmberObject.create({ ...updated });
-    });
-  }
-
-  not(a) {
-    return !a;
+  // Keyset cursor for the server to seek past.
+  get cursor() {
+    const last = this.eligibleUsers[this.eligibleUsers.length - 1];
+    if (!last) {
+      return {};
+    }
+    return { last_seen_at: last.last_seen_at, last_id: last.id };
   }
 
   @action
   getUsers() {
-    if (this.usersFetched) {
+    if (this.isLoading) {
       return;
     }
 
     this.isLoading = true;
-    this.currentPage = 1;
 
-    ajax(`/mass-anonymize/admin.json?page=${this.currentPage}`)
+    return ajax("/mass-anonymize/admin.json")
       .then((response) => {
-        this.totalCount = response.total_count ?? response.users?.length ?? 0;
         this.eligibleUsers = this._mapUsers(response.users ?? []);
-        this.usersFetched = true;
+        this.hasMore = response.has_more ?? false;
       })
-      .catch((err) => console.error(err)) // eslint-disable-line no-console
+      .catch(popupAjaxError)
       .finally(() => {
         this.isLoading = false;
       });
@@ -78,19 +65,16 @@ export default class AdminPluginsShowMassAnonymizeController extends Controller 
     }
 
     this.isLoading = true;
-    this.currentPage += 1;
 
-    ajax(`/mass-anonymize/admin.json?page=${this.currentPage}`)
+    return ajax("/mass-anonymize/admin.json", { data: this.cursor })
       .then((response) => {
         this.eligibleUsers = [
           ...this.eligibleUsers,
           ...this._mapUsers(response.users ?? []),
         ];
+        this.hasMore = response.has_more ?? false;
       })
-      .catch((err) => {
-        this.currentPage -= 1;
-        console.error(err); // eslint-disable-line no-console
-      })
+      .catch(popupAjaxError)
       .finally(() => {
         this.isLoading = false;
       });
@@ -122,13 +106,15 @@ export default class AdminPluginsShowMassAnonymizeController extends Controller 
   @action
   selectAll() {
     this.eligibleUsers = this.eligibleUsers.map((user) => {
-      user.maState = MAStates.SELECTED;
+      if (user.maState === MAStates.IDLE) {
+        user.maState = MAStates.SELECTED;
+      }
       return EmberObject.create({ ...user });
     });
   }
 
   isProcessing(user) {
-    return user.maState >= MAStates.IN_PROGRESS;
+    return user.maState === MAStates.IN_PROGRESS;
   }
 
   isDone(user) {
@@ -171,48 +157,47 @@ export default class AdminPluginsShowMassAnonymizeController extends Controller 
     }
 
     this.dialog.confirm({
-      message: i18n("mass_anonymize.confirm_anonymize", { count: selected.length }),
+      message: i18n("mass_anonymize.confirm_anonymize", {
+        count: selected.length,
+      }),
       didConfirm: () => this._doAnonymizeAll(selected),
     });
   }
 
-  _doAnonymizeAll(selectedUsers) {
+  async _doAnonymizeAll(selectedUsers) {
     const SEGMENT_SIZE = 5;
+    const ids = selectedUsers.map((user) => user.id);
+    let skipped = 0;
 
-    const allToAnonymize = selectedUsers.map((user) => user.id);
-    const numToAnonymize = allToAnonymize.length;
+    for (let start = 0; start < ids.length; start += SEGMENT_SIZE) {
+      const segment = ids.slice(start, start + SEGMENT_SIZE);
+      segment.forEach((id) => this.updateState(id, MAStates.IN_PROGRESS));
 
-    const shouldContinue = (segmentIdx) => {
-      return segmentIdx * SEGMENT_SIZE < numToAnonymize;
-    };
-
-    const applySequence = (segmentIdx) => {
-      const segmentStart = segmentIdx * SEGMENT_SIZE;
-      const segment = allToAnonymize.slice(segmentStart, segmentStart + SEGMENT_SIZE);
-
-      segment.forEach((id) => {
-        this.updateState(id, MAStates.IN_PROGRESS);
-      });
-
-      ajax("/mass-anonymize/anonymize.json", {
-        type: "POST",
-        contentType: "application/json",
-        data: JSON.stringify({ users: segment }),
-      })
-        .then((data) => {
-          data?.anonymizedIds.forEach((id) => {
-            this.updateState(id, MAStates.ANONYMIZED);
-          });
-
-          if (shouldContinue(segmentIdx + 1)) {
-            applySequence(segmentIdx + 1);
-          }
-        })
-        .catch(() => {
-          segment.forEach((id) => this.updateState(id, MAStates.IDLE));
+      try {
+        const data = await ajax("/mass-anonymize/anonymize.json", {
+          type: "POST",
+          contentType: "application/json",
+          data: JSON.stringify({ users: segment }),
         });
-    };
 
-    applySequence(0);
+        const anonymized = new Set(data?.anonymized_ids ?? []);
+        for (const id of segment) {
+          // Skipped ids return to IDLE rather than staying stuck on a spinner.
+          this.updateState(
+            id,
+            anonymized.has(id) ? MAStates.ANONYMIZED : MAStates.IDLE
+          );
+        }
+        skipped += segment.filter((id) => !anonymized.has(id)).length;
+      } catch (err) {
+        segment.forEach((id) => this.updateState(id, MAStates.IDLE));
+        popupAjaxError(err);
+        return;
+      }
+    }
+
+    if (skipped > 0) {
+      this.dialog.alert(i18n("mass_anonymize.some_skipped", { count: skipped }));
+    }
   }
 }
