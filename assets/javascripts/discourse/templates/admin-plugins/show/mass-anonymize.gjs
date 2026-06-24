@@ -11,7 +11,7 @@ import { i18n } from "discourse-i18n";
 
 export default <template>
   <DBreadcrumbsItem
-    @path="/admin/plugins/mass-anonymizer/mass-anonymize"
+    @path="/admin/plugins/discourse-mass-anonymizer/mass-anonymize"
     @label={{i18n "mass_anonymize.title"}}
   />
 

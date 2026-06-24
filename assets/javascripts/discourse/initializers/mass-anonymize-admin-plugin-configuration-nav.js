@@ -10,7 +10,7 @@ export default {
     }
 
     withPluginApi((api) => {
-      api.addAdminPluginConfigurationNav("mass-anonymizer", [
+      api.addAdminPluginConfigurationNav("discourse-mass-anonymizer", [
         {
           label: "mass_anonymize.title",
           route: "adminPlugins.show.mass-anonymize",

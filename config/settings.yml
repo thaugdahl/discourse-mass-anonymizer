@@ -1,4 +1,4 @@
-mass_anonymizer:
+discourse_mass_anonymizer:
   mass_anonymizer_enabled:
     default: false
     client: true

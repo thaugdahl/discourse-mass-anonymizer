@@ -3,7 +3,7 @@ en:
     admin:
       site_settings:
         categories:
-          mass_anonymizer: "Mass Anonymize"
+          discourse_mass_anonymizer: "Mass anonymizer"
         manon_min_time_since_last_seen: "Min Time"
   js:
     mass_anonymize:
