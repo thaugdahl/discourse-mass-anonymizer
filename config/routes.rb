@@ -5,6 +5,10 @@ MassAnonymizePlugin::Engine.routes.draw do
     get "/admin" => "admin#index"
     post "/anonymize" => "admin#anonymize"
   end
+
+  scope "/admin/plugins/discourse-mass-anonymizer", constraints: AdminConstraint.new do
+    get "/mass-anonymize" => "admin#index"
+  end
 end
 
 Discourse::Application.routes.draw { mount ::MassAnonymizePlugin::Engine, at: "/" }
